@@ -473,11 +473,11 @@ sub get_videos{
 
     $self->{logger}->info( "Found " . scalar( keys( %{ $list->{media} } ) ) . " videos to download" );
     
-    my $sth = $self->{dbh}->prepare( 'INSERT INTO downloads ( abo_id, path, url, time ) '.
-        'VALUES( ?, ?, ?, ? )' );
+    my $sth = $self->{dbh}->prepare( 'INSERT INTO downloads ( abo_id, media_id, path, url, time ) '.
+        'VALUES( ?, ?, ?, ?, ? )' );
 
-    foreach( sort( keys( %{ $list->{media} } ) ) ){
-        my $video = $list->{media}->{$_};
+    foreach my $media_id ( sort( keys( %{ $list->{media} } ) ) ){
+        my $video = $list->{media}->{$media_id};
         my $theme = to_ascii( $list->{themes}->{ $video->{theme_id} }->{theme} );
         my $channel = to_ascii( $list->{channels}->{ $list->{themes}->{ $video->{theme_id} }->{channel_id} } );
         my $target_dir = catfile( $self->{target_dir}, $channel, $theme );
@@ -513,7 +513,7 @@ sub get_videos{
             }
             
             if( -e $target_path ){
-                $sth->execute( $abo_id, $target_path, $video->{url}, date(time) );
+                $sth->execute( $abo_id, $media_id, $target_path, $video->{url}, date(time) );
             }else{ 
                 $self->{logger}->info( sprintf( "Could not download %s", $video->{title} ) );
             }
@@ -549,7 +549,7 @@ sub list_abos{
     my ( $self ) = @_;
 
 	my $arr_ref = $self->{dbh}->selectall_arrayref( "SELECT name FROM abos ORDER BY name" )
-		or die( "An error occured while retrieving abos\n" );
+		or die( "An error occurred while retrieving abos\n" );
 
 	if( @{$arr_ref} == 0 ){
 		print "No abos found\n";
@@ -566,7 +566,7 @@ sub run_abo{
 	my( $self, $args ) = @_;
 
 	my $arr_ref = $self->{dbh}->selectall_arrayref( "SELECT * FROM abos WHERE name='$args->{name}'",
-		{ Slice => {} } ) or die( "An error occured while retrieving abo: $args->{name}\n" );
+		{ Slice => {} } ) or die( "An error occurred while retrieving abo: $args->{name}\n" );
 	if( @{$arr_ref} == 0 ){
 		$self->{logger}->info( "Abo \"$args->{name}\" not found." );
 	}
@@ -583,6 +583,21 @@ sub run_abo{
 					  abo_id => $abo->{abo_id}
 				  } );
 	}
+}
+
+sub get_downloaded_media{
+	my ( $self ) = @_;
+
+	my $sql = "SELECT abos.name, downloads.media_id, downloads.path, downloads.time "
+		. "FROM downloads LEFT OUTER JOIN abos ON abos.abo_id=downloads.abo_id WHERE "
+		. "downloads.expired=0 ORDER BY downloads.time";
+
+	$self->{logger}->debug( "SQL: $sql" );
+
+	my @result = @{ $self->{dbh}->selectall_arrayref( $sql, { Slice => {} }) 
+		|| die( "Could not fetch downloads" )};
+
+	return \@result;
 }
 
 sub expire_downloads{
