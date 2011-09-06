@@ -1,8 +1,5 @@
 TODO:
 
-* implement list downloaded media (those that are not expired, i.e. still in the
-  target folder)
-
 * implement delete downloaded media (delete from target folder and mark as expired
   in db)
 
@@ -30,6 +27,8 @@ TODO:
 * Change module layout.  Use Module::Starter to create typical structure with Makefile.PL and a manifest.
 
 DONE:
+* implement list downloaded media (those that are not expired, i.e. still in the
+  target folder)
 * using IO::Uncompress::AnyUncompress to unzip/bunzip2 media file 
 * add new commands in help
 * add_abo: make prep statement to insert NULL values
